@@ -6,14 +6,33 @@
   </head>
   <body>
     <div id="point">
-      <div class="jumbotron jumbotron-fluid">
-        <nav class="navbar navbar-light bg-light">
-          <form class="form-inline">
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-          </form>
-        </nav>
-      </div>
+      <main class="container">
+        <div class="jumbotron jumbotron-fluid">
+          <div class="container">
+            <div class="row">
+              <form class = "row col-12 align-items-start" data-name="add-form">
+                <div class="form-group col-10">
+                  <input type="text" class="form-control" id="inputRSS" aria-describedby="inputRss" placeholder="Enter RSS" data-name = "add-field">
+                  <div class="invalid-feedback"></div>
+                </div>
+                <button type="submit" class="btn btn-primary col-2" data-name="add-button" disabled>Submit</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class = "contaner">
+          <div class="row justify-content-around">
+            <div class="col-5">
+              <h2>Список потоков:</h2>
+              <ul class="feeds list-group"></ul>
+            </div>
+            <div class="col-5">
+              <h2>Список статей:</h2>
+              <ul class = "articles list-group"></ul>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   </body>
 </html>
