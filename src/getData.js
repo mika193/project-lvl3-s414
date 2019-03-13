@@ -4,8 +4,8 @@ export default (data) => {
   if (doc.querySelector('parsererror')) {
     throw new Error('parsing mistake');
   }
-  const title = doc.querySelector('title');
-  const description = doc.querySelector('description');
+  const title = doc.querySelector('title').textContent;
+  const description = doc.querySelector('description').textContent;
   const articles = [...doc.querySelectorAll('item')];
 
   const chanel = {

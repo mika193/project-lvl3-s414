@@ -154,33 +154,29 @@ export default () => {
 
   watch(state, 'chanels', () => {
     const { chanels } = state;
-    const feedsList = document.querySelector('.feeds');
+    const chanelsList = document.querySelector('.feeds');
     const articlesList = document.querySelector('.articles');
     const modalsContainer = document.querySelector('.modals');
-    const newFeedsList = document.createElement('ul');
+    const newChanelsList = document.createElement('ul');
     const newArticlesList = document.createElement('ul');
     const newmodalsContainer = document.createElement('div');
-    newFeedsList.classList.add('feeds', 'list-group');
+    newChanelsList.classList.add('feeds', 'list-group');
     newArticlesList.classList.add('articles', 'list-group');
     newmodalsContainer.classList.add('modals');
 
-    chanels.forEach((chanel) => {
-      const feed = document.createElement('li');
-      const feedTitle = document.createElement('h3');
-      const feedDescription = document.createElement('p');
-      feedTitle.textContent = chanel.title.textContent;
-      feedDescription.textContent = chanel.description.textContent;
-      feed.append(feedTitle);
-      feed.append(feedDescription);
-      feed.classList.add('list-group-item');
-      newFeedsList.append(feed);
+    chanels.forEach(({ title, description, articles }) => {
+      const chanel = document.createElement('li');
+      chanel.classList.add('list-group-item');
+      const chanelContent = `<h3>${title}</h3><p>${description}</p>`;
+      chanel.innerHTML = chanelContent;
+      newChanelsList.append(chanel);
 
-      chanel.articles.forEach(({ name, href, text }) => {
+      articles.forEach(({ name, href, text }) => {
         const article = document.createElement('li');
         article.classList.add('row');
         const modalId = `modal${state.modalIndex}`;
-        const content = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
-        article.innerHTML = content;
+        const articleContent = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
+        article.innerHTML = articleContent;
         newArticlesList.append(article);
         const modal = createModal(name, text, modalId);
         state.modalIndex += 1;
@@ -189,7 +185,7 @@ export default () => {
     });
 
     state.modalIndex = 0;
-    feedsList.replaceWith(newFeedsList);
+    chanelsList.replaceWith(newChanelsList);
     articlesList.replaceWith(newArticlesList);
     modalsContainer.replaceWith(newmodalsContainer);
   });
