@@ -1,6 +1,9 @@
 export default (data) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(data, 'application/xml');
+  if (doc.querySelector('parsererror')) {
+    throw new Error('parsing mistake');
+  }
   const title = doc.querySelector('title');
   const description = doc.querySelector('description');
   const articles = [...doc.querySelectorAll('item')];
