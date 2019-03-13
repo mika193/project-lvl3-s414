@@ -22,11 +22,10 @@ export default () => {
     input: 'initial',
     href: '',
     feedList: new Set(),
-    submit: 'disabled',
+    submittButton: 'disabled',
     chanels: [],
     buttonText: 'Submit',
     form: 'calm',
-    modalIndex: 0,
     error: '',
   };
 
@@ -35,7 +34,7 @@ export default () => {
       check: value => value === '',
       process: () => ({
         input: 'initial',
-        submit: 'disabled',
+        submittButton: 'disabled',
       }),
     },
 
@@ -60,7 +59,7 @@ export default () => {
       process: () => ({
         feedbackText: '',
         input: 'valid',
-        submit: 'ready',
+        submittButton: 'enabled',
       }),
     },
   ];
@@ -69,45 +68,15 @@ export default () => {
     calm: () => {},
     reset: () => {
       addForm.reset();
-      state.form = 'calm';
     },
   };
 
-  const submitActions = {
-    submitted: () => {
-      state.submit = 'processing';
-      state.buttonText = 'Searching...';
-      state.input = 'disabled';
-      axios.get(`${proxiUrl}${state.href}`)
-        .then((response) => {
-          try {
-            const chanelData = getChanelData(response.data);
-            state.chanels.push(chanelData);
-            state.feedList.add(addField.value);
-            state.form = 'reset';
-            state.input = 'initial';
-          } catch (e) {
-            state.input = 'invalid';
-            state.feedbackText = 'Данный URL не является RSS';
-          } finally {
-            state.submit = 'disabled';
-            state.buttonText = 'Submit';
-          }
-        }).catch(() => {
-          state.error = 'Произошла ошибка сети. Попробуйте повторить запрос';
-          state.input = 'valid';
-          state.submit = 'disabled';
-          state.buttonText = 'Submit';
-        });
-    },
+  const submitButtonActions = {
     disabled: () => {
       addButton.disabled = true;
     },
-    ready: () => {
+    enabled: () => {
       addButton.disabled = false;
-    },
-    processing: () => {
-      addButton.disabled = true;
     },
   };
 
@@ -144,8 +113,8 @@ export default () => {
     invalidFeedbackField.textContent = state.feedbackText;
   });
 
-  watch(state, 'submit', () => {
-    submitActions[state.submit]();
+  watch(state, 'submittButton', () => {
+    submitButtonActions[state.submittButton]();
   });
 
   watch(state, 'form', () => {
@@ -154,6 +123,7 @@ export default () => {
 
   watch(state, 'chanels', () => {
     const { chanels } = state;
+    let modalIndex = 0;
     const chanelsList = document.querySelector('.feeds');
     const articlesList = document.querySelector('.articles');
     const modalsContainer = document.querySelector('.modals');
@@ -174,17 +144,17 @@ export default () => {
       articles.forEach(({ name, href, text }) => {
         const article = document.createElement('li');
         article.classList.add('row');
-        const modalId = `modal${state.modalIndex}`;
+        const modalId = `modal${modalIndex}`;
         const articleContent = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
         article.innerHTML = articleContent;
         newArticlesList.append(article);
         const modal = createModal(name, text, modalId);
-        state.modalIndex += 1;
+        modalIndex += 1;
         newmodalsContainer.append(modal);
       });
     });
 
-    state.modalIndex = 0;
+    modalIndex = 0;
     chanelsList.replaceWith(newChanelsList);
     articlesList.replaceWith(newArticlesList);
     modalsContainer.replaceWith(newmodalsContainer);
@@ -203,15 +173,38 @@ export default () => {
     const { process } = getAction(validationActions, target.value);
     const newParams = process();
     state.href = target.value.split('//').slice(1).join('');
-    Object.keys(newParams).forEach((key) => {
-      state[key] = newParams[key];
-    });
+    Object.assign(state, newParams);
   });
 
   addForm.addEventListener('submit', (evt) => {
     evt.preventDefault();
-    if (state.submit === 'ready') {
-      state.submit = 'submitted';
+    if (state.input === 'valid') {
+      state.submittButton = 'disabled';
+      state.buttonText = 'Searching...';
+      state.input = 'disabled';
+      axios.get(`${proxiUrl}${state.href}`)
+        .then((response) => {
+          try {
+            const chanelData = getChanelData(response.data);
+            state.chanels.push(chanelData);
+            state.feedList.add(addField.value);
+            state.form = 'reset';
+            state.input = 'initial';
+          } catch (e) {
+            state.input = 'invalid';
+            state.feedbackText = 'Данный URL не является RSS';
+          } finally {
+            state.buttonText = 'Submit';
+          }
+        }).catch(() => {
+          state.error = 'Произошла ошибка сети. Попробуйте повторить запрос';
+          state.input = 'valid';
+          state.buttonText = 'Submit';
+        });
     }
+  });
+
+  addForm.addEventListener('reset', () => {
+    state.form = 'calm';
   });
 };
