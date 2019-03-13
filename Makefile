@@ -11,7 +11,7 @@ build:
 	NODE_ENV=production npx webpack
 
 deploy:
-	surge
+	surge --domain mika193-rss.surge.sh
 
 test:
 	npm test

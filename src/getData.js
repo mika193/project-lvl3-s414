@@ -12,9 +12,10 @@ export default (data) => {
   };
 
   chanel.articles = articles.map((article) => {
-    const name = article.querySelector('title');
-    const href = article.querySelector('link');
-    return { name, href };
+    const name = article.querySelector('title').textContent;
+    const href = article.querySelector('link').textContent;
+    const text = article.querySelector('description').textContent;
+    return { name, href, text };
   });
 
   return chanel;

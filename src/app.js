@@ -1,12 +1,15 @@
 import WatchJS from 'melanke-watchjs';
 import { isURL } from 'validator';
 import axios from 'axios';
+import 'bootstrap/js/dist/modal';
 import getChanelData from './getData';
+import createModal from './modal';
 
 const addField = document.querySelector('[data-name = add-field]');
 const addForm = document.querySelector('[data-name = add-form]');
 const addButton = document.querySelector('[data-name = add-button]');
 const invalidFeedbackField = document.querySelector('.invalid-feedback');
+const main = document.querySelector('main');
 const proxiUrl = 'https://cors-anywhere.herokuapp.com/';
 
 const state = {
@@ -127,13 +130,25 @@ watch(state, 'chanels', () => {
     feed.classList.add('list-group-item');
     newFeedsList.append(feed);
 
-    chanel.articles.forEach(({ name, href }) => {
+    chanel.articles.forEach(({ name, href, text }, index) => {
       const link = document.createElement('a');
-      link.href = href.textContent;
-      link.textContent = name.textContent;
+      link.href = href;
+      link.textContent = name;
+      link.classList.add('col-8');
+      const modalButton = document.createElement('button');
+      modalButton.textContent = 'Подробнее';
+      modalButton.classList.add('col-3');
+      modalButton.type = 'button';
+      modalButton.dataset.toggle = 'modal';
+      const modalId = `modal${index}`;
+      modalButton.dataset.target = `#${modalId}`;
+      const modal = createModal(name, text, modalId);
       const article = document.createElement('li');
+      article.classList.add('row');
       article.append(link);
+      article.append(modalButton);
       newArticlesList.append(article);
+      main.append(modal);
     });
   });
 
