@@ -49,6 +49,7 @@ export default () => {
       process: () => ({
         feedbackText: 'Введите URL, например: https://mail.ru',
         input: 'invalid',
+        submittButton: 'disabled',
       }),
     },
 
@@ -57,6 +58,7 @@ export default () => {
       process: () => ({
         feedbackText: 'Такой URL уже есть в списке',
         input: 'invalid',
+        submittButton: 'disabled',
       }),
     },
 
@@ -156,7 +158,7 @@ export default () => {
       const article = document.createElement('li');
       article.className = 'd-flex list-group-item justify-content-between align-items-center';
       const modalId = `modal${index}`;
-      const articleContent = `<a href="${href}">${name}</a><button class="btn btn-info" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
+      const articleContent = `<a href="${href}">${name}</a><button class="btn btn-info ml-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
       article.innerHTML = articleContent;
       newArticlesList.append(article);
       const modal = createModal(name, text, modalId);
@@ -231,6 +233,7 @@ export default () => {
           state.error = 'Произошла ошибка сети. Попробуйте повторить запрос';
           state.input = 'valid';
           state.buttonText = 'Submit';
+          state.submittButton = 'enabled';
         });
     }
   });
