@@ -154,9 +154,9 @@ export default () => {
 
     state.articles.forEach(({ name, href, text }, index) => {
       const article = document.createElement('li');
-      article.classList.add('row');
+      article.className = 'd-flex list-group-item justify-content-between align-items-center';
       const modalId = `modal${index}`;
-      const articleContent = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
+      const articleContent = `<a href="${href}">${name}</a><button class="btn btn-info" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
       article.innerHTML = articleContent;
       newArticlesList.append(article);
       const modal = createModal(name, text, modalId);
