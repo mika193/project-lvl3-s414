@@ -1,13 +1,15 @@
 import WatchJS from 'melanke-watchjs';
 import { isURL } from 'validator';
 import axios from 'axios';
+import _ from 'lodash';
 import 'bootstrap/js/dist/modal';
-import getChanelData from './getData';
+import getData from './getData';
 import createModal from './modal';
 
 const getAction = (actionsList, param) => actionsList.find(({ check }) => check(param));
 
 const { watch } = WatchJS;
+const updateInterval = 5000;
 
 export default () => {
   const addField = document.querySelector('[data-name = add-field]');
@@ -17,16 +19,20 @@ export default () => {
   const errorField = document.querySelector('.errors');
   const proxiUrl = 'https://cors-anywhere.herokuapp.com/';
 
+  const getRequestHref = href => `${proxiUrl}${href.split('//').slice(1).join('')}`;
+
   const state = {
     feedbackText: '',
     input: 'initial',
-    href: '',
-    feedList: new Set(),
+    requestHref: '',
+    hrefsList: new Set(),
     submittButton: 'disabled',
     chanels: [],
+    articles: [],
     buttonText: 'Submit',
     form: 'calm',
     error: '',
+    update: 'not-updated',
   };
 
   const validationActions = [
@@ -47,7 +53,7 @@ export default () => {
     },
 
     {
-      check: value => state.feedList.has(value),
+      check: value => state.hrefsList.has(value),
       process: () => ({
         feedbackText: 'Такой URL уже есть в списке',
         input: 'invalid',
@@ -55,7 +61,7 @@ export default () => {
     },
 
     {
-      check: value => !state.feedList.has(value),
+      check: value => !state.hrefsList.has(value),
       process: () => ({
         feedbackText: '',
         input: 'valid',
@@ -123,39 +129,40 @@ export default () => {
 
   watch(state, 'chanels', () => {
     const { chanels } = state;
-    let modalIndex = 0;
     const chanelsList = document.querySelector('.feeds');
-    const articlesList = document.querySelector('.articles');
-    const modalsContainer = document.querySelector('.modals');
     const newChanelsList = document.createElement('ul');
-    const newArticlesList = document.createElement('ul');
-    const newmodalsContainer = document.createElement('div');
     newChanelsList.classList.add('feeds', 'list-group');
-    newArticlesList.classList.add('articles', 'list-group');
-    newmodalsContainer.classList.add('modals');
 
-    chanels.forEach(({ title, description, articles }) => {
+    chanels.forEach(({ title, description }) => {
       const chanel = document.createElement('li');
       chanel.classList.add('list-group-item');
       const chanelContent = `<h3>${title}</h3><p>${description}</p>`;
       chanel.innerHTML = chanelContent;
       newChanelsList.append(chanel);
-
-      articles.forEach(({ name, href, text }) => {
-        const article = document.createElement('li');
-        article.classList.add('row');
-        const modalId = `modal${modalIndex}`;
-        const articleContent = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
-        article.innerHTML = articleContent;
-        newArticlesList.append(article);
-        const modal = createModal(name, text, modalId);
-        modalIndex += 1;
-        newmodalsContainer.append(modal);
-      });
     });
 
-    modalIndex = 0;
     chanelsList.replaceWith(newChanelsList);
+  });
+
+  watch(state, 'articles', () => {
+    const articlesList = document.querySelector('.articles');
+    const modalsContainer = document.querySelector('.modals');
+    const newArticlesList = document.createElement('ul');
+    const newmodalsContainer = document.createElement('div');
+    newArticlesList.classList.add('articles', 'list-group');
+    newmodalsContainer.classList.add('modals');
+
+    state.articles.forEach(({ name, href, text }, index) => {
+      const article = document.createElement('li');
+      article.classList.add('row');
+      const modalId = `modal${index}`;
+      const articleContent = `<a href="${href}" class="col-8">${name}</a><button class="col-3" type="button" data-toggle="modal" data-target="#${modalId}">Подробнее</button>`;
+      article.innerHTML = articleContent;
+      newArticlesList.append(article);
+      const modal = createModal(name, text, modalId);
+      newmodalsContainer.append(modal);
+    });
+
     articlesList.replaceWith(newArticlesList);
     modalsContainer.replaceWith(newmodalsContainer);
   });
@@ -168,11 +175,30 @@ export default () => {
     errorField.textContent = state.error;
   });
 
+  const update = () => {
+    const requests = Array.from(state.hrefsList).map(href => axios.get(getRequestHref(href)));
+    Promise.all(requests).then((resps) => {
+      try {
+        const articles = resps.reduce((acc, { data }) => [...acc, ...getData(data).articles], []);
+        const newArticles = _.differenceBy(articles, state.articles, 'name');
+        if (newArticles.length > 0) {
+          state.articles = [...newArticles, ...state.articles];
+        }
+      } catch (e) {
+        console.log(e);
+      } finally {
+        window.setTimeout(update, updateInterval);
+      }
+    }).catch(() => {
+      window.setTimeout(update, updateInterval);
+    });
+  };
+
   addField.addEventListener('input', ({ target }) => {
     state.error = '';
     const { process } = getAction(validationActions, target.value);
     const newParams = process();
-    state.href = target.value.split('//').slice(1).join('');
+    state.requestHref = getRequestHref(target.value);
     Object.assign(state, newParams);
   });
 
@@ -182,14 +208,19 @@ export default () => {
       state.submittButton = 'disabled';
       state.buttonText = 'Searching...';
       state.input = 'disabled';
-      axios.get(`${proxiUrl}${state.href}`)
+      axios.get(state.requestHref)
         .then((response) => {
           try {
-            const chanelData = getChanelData(response.data);
-            state.chanels.push(chanelData);
-            state.feedList.add(addField.value);
+            const { chanel, articles } = getData(response.data);
+            state.chanels.push(chanel);
+            state.articles = [...state.articles, ...articles];
+            state.hrefsList.add(addField.value);
             state.form = 'reset';
             state.input = 'initial';
+            if (state.update === 'not-updated') {
+              state.update = 'updated';
+              window.setTimeout(update, updateInterval);
+            }
           } catch (e) {
             state.input = 'invalid';
             state.feedbackText = 'Данный URL не является RSS';
