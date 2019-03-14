@@ -20,17 +20,15 @@ export default () => {
   const proxiUrl = 'https://cors-anywhere.herokuapp.com/';
 
   const getRequestHref = href => `${proxiUrl}${href.split('//').slice(1).join('')}`;
+  const getClassName = value => `is-${value}`;
 
   const state = {
     feedbackText: '',
-    input: 'initial',
     requestHref: '',
     hrefsList: new Set(),
-    submittButton: 'disabled',
     chanels: [],
     articles: [],
-    buttonText: 'Submit',
-    form: 'calm',
+    formStatus: 'initial',
     error: '',
     update: 'not-updated',
   };
@@ -39,8 +37,7 @@ export default () => {
     {
       check: value => value === '',
       process: () => ({
-        input: 'initial',
-        submittButton: 'disabled',
+        formStatus: 'initial',
       }),
     },
 
@@ -48,8 +45,7 @@ export default () => {
       check: value => !(isURL(value)),
       process: () => ({
         feedbackText: 'Введите URL, например: https://mail.ru',
-        input: 'invalid',
-        submittButton: 'disabled',
+        formStatus: 'invalid',
       }),
     },
 
@@ -57,8 +53,7 @@ export default () => {
       check: value => state.hrefsList.has(value),
       process: () => ({
         feedbackText: 'Такой URL уже есть в списке',
-        input: 'invalid',
-        submittButton: 'disabled',
+        formStatus: 'invalid',
       }),
     },
 
@@ -66,67 +61,48 @@ export default () => {
       check: value => !state.hrefsList.has(value),
       process: () => ({
         feedbackText: '',
-        input: 'valid',
-        submittButton: 'enabled',
+        formStatus: 'valid',
       }),
     },
   ];
 
   const formActions = {
-    calm: () => {},
+    initial: () => {
+      addField.classList.remove('is-valid', 'is-invalid');
+      addField.disabled = false;
+      addButton.disabled = true;
+      addButton.textContent = 'Submit';
+    },
+    valid: () => {
+      addField.disabled = false;
+      addField.classList.add(getClassName('valid'));
+      addField.classList.remove(getClassName('invalid'));
+      addButton.textContent = 'Submit';
+      addButton.disabled = false;
+    },
+    invalid: () => {
+      addField.disabled = false;
+      addField.classList.add(getClassName('invalid'));
+      addField.classList.remove(getClassName('valid'));
+      addButton.textContent = 'Submit';
+      addButton.disabled = true;
+    },
+    sending: () => {
+      addButton.disabled = true;
+      addButton.textContent = 'Searching...';
+      addField.disabled = true;
+    },
     reset: () => {
       addForm.reset();
     },
   };
 
-  const submitButtonActions = {
-    disabled: () => {
-      addButton.disabled = true;
-    },
-    enabled: () => {
-      addButton.disabled = false;
-    },
-  };
-
-  const getClassName = value => `is-${value}`;
-
-  const inputActions = {
-    initial: () => {
-      addField.classList.remove('is-valid', 'is-invalid');
-      addField.disabled = false;
-    },
-
-    disabled: () => {
-      addField.disabled = true;
-    },
-
-    valid: () => {
-      addField.disabled = false;
-      addField.classList.add(getClassName('valid'));
-      addField.classList.remove(getClassName('invalid'));
-    },
-
-    invalid: () => {
-      addField.disabled = false;
-      addField.classList.add(getClassName('invalid'));
-      addField.classList.remove(getClassName('valid'));
-    },
-  };
-
-  watch(state, ['input', 'feedbackText'], () => {
-    inputActions[state.input]();
-  });
-
   watch(state, 'feedbackText', () => {
     invalidFeedbackField.textContent = state.feedbackText;
   });
 
-  watch(state, 'submittButton', () => {
-    submitButtonActions[state.submittButton]();
-  });
-
-  watch(state, 'form', () => {
-    formActions[state.form]();
+  watch(state, 'formStatus', () => {
+    formActions[state.formStatus]();
   });
 
   watch(state, 'chanels', () => {
@@ -169,19 +145,15 @@ export default () => {
     modalsContainer.replaceWith(newmodalsContainer);
   });
 
-  watch(state, 'buttonText', () => {
-    addButton.textContent = state.buttonText;
-  });
-
   watch(state, 'error', () => {
     errorField.textContent = state.error;
   });
 
   const update = () => {
     const requests = Array.from(state.hrefsList).map(href => axios.get(getRequestHref(href)));
-    Promise.all(requests).then((resps) => {
+    Promise.all(requests).then((responses) => {
       try {
-        const articles = resps.reduce((acc, { data }) => [...acc, ...getData(data).articles], []);
+        const articles = responses.map(({ data }) => getData(data).articles).flat();
         const newArticles = _.differenceBy(articles, state.articles, 'name');
         if (newArticles.length > 0) {
           state.articles = [...newArticles, ...state.articles];
@@ -189,10 +161,10 @@ export default () => {
       } catch (e) {
         console.log(e);
       } finally {
-        window.setTimeout(update, updateInterval);
+        setTimeout(update, updateInterval);
       }
     }).catch(() => {
-      window.setTimeout(update, updateInterval);
+      setTimeout(update, updateInterval);
     });
   };
 
@@ -206,10 +178,8 @@ export default () => {
 
   addForm.addEventListener('submit', (evt) => {
     evt.preventDefault();
-    if (state.input === 'valid') {
-      state.submittButton = 'disabled';
-      state.buttonText = 'Searching...';
-      state.input = 'disabled';
+    if (state.formStatus === 'valid') {
+      state.formStatus = 'sending';
       axios.get(state.requestHref)
         .then((response) => {
           try {
@@ -217,28 +187,23 @@ export default () => {
             state.chanels.push(chanel);
             state.articles = [...state.articles, ...articles];
             state.hrefsList.add(addField.value);
-            state.form = 'reset';
-            state.input = 'initial';
+            state.formStatus = 'reset';
             if (state.update === 'not-updated') {
               state.update = 'updated';
-              window.setTimeout(update, updateInterval);
+              setTimeout(update, updateInterval);
             }
           } catch (e) {
-            state.input = 'invalid';
+            state.formStatus = 'invalid';
             state.feedbackText = 'Данный URL не является RSS';
-          } finally {
-            state.buttonText = 'Submit';
           }
         }).catch(() => {
           state.error = 'Произошла ошибка сети. Попробуйте повторить запрос';
-          state.input = 'valid';
-          state.buttonText = 'Submit';
-          state.submittButton = 'enabled';
+          state.formStatus = 'valid';
         });
     }
   });
 
   addForm.addEventListener('reset', () => {
-    state.form = 'calm';
+    state.formStatus = 'initial';
   });
 };
