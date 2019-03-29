@@ -73,20 +73,16 @@ export default () => {
       addButton.disabled = true;
       addButton.textContent = 'Submit';
     },
-    valid: () => {
+    validation: (newClass) => {
+      const oldClass = newClass === 'valid' ? 'invalid' : 'valid';
       addField.disabled = false;
-      addField.classList.add(getClassName('valid'));
-      addField.classList.remove(getClassName('invalid'));
+      addField.classList.add(getClassName(newClass));
+      addField.classList.remove(getClassName(oldClass));
       addButton.textContent = 'Submit';
-      addButton.disabled = false;
+      addButton.disabled = newClass === 'invalid';
     },
-    invalid: () => {
-      addField.disabled = false;
-      addField.classList.add(getClassName('invalid'));
-      addField.classList.remove(getClassName('valid'));
-      addButton.textContent = 'Submit';
-      addButton.disabled = true;
-    },
+    valid: () => formActions.validation('valid'),
+    invalid: () => formActions.validation('invalid'),
     sending: () => {
       addButton.disabled = true;
       addButton.textContent = 'Searching...';
